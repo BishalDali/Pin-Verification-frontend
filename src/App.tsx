@@ -8,6 +8,7 @@ function App() {
   const [serverVerificationError, setServerVerificationError] = useState(false);
   const [verificationSuccess, setVerificationSuccess] = useState(false);
   const [pinValues, setPinValues] = useState(Array(6).fill(""));
+  const [isLoading, setIsLoading] = useState(false);
 
   const handlePinChange = (index: number, value: string) => {
     const newPinValues = [...pinValues];
@@ -16,45 +17,41 @@ function App() {
   };
 
   const handlePaste = (pastedValue: string) => {
-    const sanitizedValue = pastedValue.replace(/\D/g, ""); // Remove non-digit characters
-    const newPinValues = [...pinValues]; // Copy the current pinValues array
-  
-    // Distribute the first 6 digits from the sanitized value among the input fields
+    const sanitizedValue = pastedValue.replace(/\D/g, "");
+    const newPinValues = [...pinValues];
     for (let i = 0; i < Math.min(sanitizedValue.length, 6); i++) {
       newPinValues[i] = sanitizedValue[i];
     }
-  
     setPinValues(newPinValues);
   };
-  
 
   const handleSubmit = async () => {
-    // Check for any empty fields
     const hasEmptyField = pinValues.some((value) => value === "");
     if (hasEmptyField) {
       setClientVerificationError(true);
-      setVerificationSuccess(false)
-      setServerVerificationError(false)
+      setVerificationSuccess(false);
+      setServerVerificationError(false);
     } else {
-      const pinCode = pinValues.join(""); // Converting the pin to string
+      setClientVerificationError(false);
+      const pinCode = pinValues.join("");
+      setIsLoading(true);
       try {
         const response: IValidatePinResponse | Error | undefined = await validatePin(pinCode);
         if (response instanceof Error) {
           setServerVerificationError(true);
-          setVerificationSuccess(false); // Clear success message
+          setVerificationSuccess(false);
         } else {
           setVerificationSuccess(true);
-          setServerVerificationError(false); // Clear error message
+          setServerVerificationError(false);
         }
       } catch (error) {
         setServerVerificationError(true);
-        setVerificationSuccess(false); // Clear success message
+        setVerificationSuccess(false);
       }
       setPinValues(Array(6).fill(""));
-      setClientVerificationError(false);
+      setIsLoading(false);
     }
   };
-  
 
   return (
     <div className="fixed inset-0 w-full h-full flex items-center justify-center">
@@ -81,15 +78,35 @@ function App() {
           <div className="text-green-500">Verification successful!</div>
         )}
         <button
-          className="w-max px-12 py-2 font-semibold text-white text-xl rounded-md bg-[rgb(16,2,73)]"
+          className="w-max px-12 py-2 font-semibold text-white text-xl rounded-md bg-[rgb(16,2,73)] relative"
           onClick={handleSubmit}
+          disabled={isLoading}
         >
-          SUBMIT
+          {isLoading && (
+            <svg
+              className="animate-spin h-5 w-5 absolute left-2 top-2"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="15"
+                cy="15"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              ></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              ></path>
+            </svg>
+          )}
+          {isLoading ? "Loading..." : "SUBMIT"}
         </button>
       </div>
     </div>
   );
-  
 }
 
 export default App;
